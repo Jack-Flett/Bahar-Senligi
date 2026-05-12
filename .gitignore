@@ -1,0 +1,16 @@
+# Build outputs
+bin/
+obj/
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Publish profiles
+Properties/PublishProfiles/
+
+# User data (don't commit your test data)
+data.json

@@ -1,0 +1,714 @@
+﻿<Window x:Class="BaharSenligi.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="clr-namespace:BaharSenligi.ViewModels"
+        xmlns:conv="clr-namespace:BaharSenligi.Converters"
+        Title="Bahar Şenliği Quiz" Height="700" Width="1100"
+        MinHeight="620" MinWidth="900"
+        Background="{StaticResource BgBrush}"
+        FontFamily="Segoe UI">
+
+    <Window.Resources>
+        <conv:BoolToVisibilityConverter x:Key="BoolVis"/>
+        <conv:NullToVisibilityConverter x:Key="NullVis"/>
+        <conv:InverseBoolConverter x:Key="InvBool"/>
+    </Window.Resources>
+
+    <Window.DataContext>
+        <vm:MainViewModel/>
+    </Window.DataContext>
+
+    <Grid>
+        <!-- ══════════════════════════════════════════════════════ -->
+        <!-- MAIN SCREEN                                            -->
+        <!-- ══════════════════════════════════════════════════════ -->
+        <Grid Visibility="{Binding IsMain, Converter={StaticResource BoolVis}}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="220"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Sidebar -->
+            <Border Grid.Column="0" Background="{StaticResource SidebarBrush}">
+                <DockPanel>
+                    <!-- Header -->
+                    <Border DockPanel.Dock="Top" Padding="16,24,16,16">
+                        <StackPanel>
+                            <TextBlock Text="🌸 Bahar Şenliği" FontSize="17" FontWeight="Bold"
+                                       Foreground="{StaticResource AccentBrush}" TextWrapping="Wrap"/>
+                            <TextBlock Text="Quiz Uygulaması" FontSize="11"
+                                       Foreground="#9999AA" Margin="0,2,0,0"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Nav buttons -->
+                    <StackPanel DockPanel.Dock="Bottom" Margin="12,0,12,16">
+                        <Button Content="🏆  Yarışma Geçmişi" Style="{StaticResource CatBtn}"
+                                Command="{Binding GoToHistoryCommand}"/>
+                        <Button Content="🎯  Yarışma Başlat" Style="{StaticResource CatBtn}"
+                                Foreground="{StaticResource AccentBrush}" FontWeight="SemiBold"
+                                Command="{Binding OpenCompetitionSetupCommand}"/>
+                    </StackPanel>
+
+                    <!-- Divider + categories label -->
+                    <StackPanel DockPanel.Dock="Top" Margin="16,8,16,4">
+                        <TextBlock Text="KATEGORİLER" FontSize="10" FontWeight="Bold"
+                                   Foreground="#6666AA" Margin="0,0,0,8"/>
+
+                        <!-- Add category -->
+                        <Button Style="{StaticResource CatBtn}"
+                                Command="{Binding OpenAddCategoryCommand}">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="＋" Foreground="{StaticResource GreenBrush}" FontSize="15" Margin="0,0,6,0"/>
+                                <TextBlock Text="Kategori Ekle" Foreground="{StaticResource GreenBrush}" FontSize="12"/>
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+
+                    <!-- Category list -->
+                    <ScrollViewer DockPanel.Dock="Top" VerticalScrollBarVisibility="Auto">
+                        <ItemsControl ItemsSource="{Binding AppData.Categories}" Margin="8,0">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid Margin="0,1">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Button Grid.Column="0" Style="{StaticResource CatBtn}"
+                                                Content="{Binding Name}"
+                                                Command="{Binding DataContext.SelectCategoryCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                CommandParameter="{Binding}"/>
+                                        <Button Grid.Column="1" Content="✕" Style="{StaticResource CatBtn}"
+                                                Foreground="#FF6666" FontSize="11" Padding="6,4"
+                                                Command="{Binding DataContext.DeleteCategoryCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                CommandParameter="{Binding}"/>
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </DockPanel>
+            </Border>
+
+            <!-- Main content area -->
+            <Grid Grid.Column="1" Margin="24">
+                <!-- Empty state -->
+                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center"
+                            Visibility="{Binding SelectedCategoryId, Converter={StaticResource NullVis}, ConverterParameter=Invert}">
+                    <TextBlock Text="🌼" FontSize="64" HorizontalAlignment="Center"/>
+                    <TextBlock Text="Bir kategori seç veya yeni kategori ekle" FontSize="16"
+                               Foreground="{StaticResource MutedTextBrush}" HorizontalAlignment="Center"
+                               Margin="0,12,0,0"/>
+                    <TextBlock Text="Soldan bir kategoriye tıkla" FontSize="12"
+                               Foreground="#BBBBCC" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                </StackPanel>
+
+                <!-- Category questions view -->
+                <DockPanel Visibility="{Binding SelectedCategoryId, Converter={StaticResource NullVis}}">
+                    <!-- Header -->
+                    <Border DockPanel.Dock="Top" Style="{StaticResource Card}" Margin="0,0,0,16" Padding="20,14">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="{Binding SelectedCategory.Name}" FontSize="20" FontWeight="Bold"
+                                           Foreground="{StaticResource DarkTextBrush}"/>
+                                <TextBlock FontSize="12" Foreground="{StaticResource MutedTextBrush}" Margin="0,2,0,0">
+                                    <Run Text="{Binding FilteredQuestions.Count, Mode=OneWay}"/>
+                                    <Run Text="soru"/>
+                                </TextBlock>
+                            </StackPanel>
+                            <Button Grid.Column="1" Content="＋ Soru Ekle" Style="{StaticResource SecondaryBtn}"
+                                    Command="{Binding OpenAddQuestionCommand}"/>
+                        </Grid>
+                    </Border>
+
+                    <!-- Questions list -->
+                    <ScrollViewer DockPanel.Dock="Top" VerticalScrollBarVisibility="Auto">
+                        <ItemsControl ItemsSource="{Binding FilteredQuestions}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Style="{StaticResource Card}" Margin="0,0,0,10" Padding="16,12">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Grid.Column="0">
+                                                <TextBlock Text="{Binding Text}" FontSize="14" FontWeight="SemiBold"
+                                                           Foreground="{StaticResource DarkTextBrush}" TextWrapping="Wrap"/>
+                                                <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                                                    <TextBlock Text="Cevap: " FontSize="12" Foreground="{StaticResource MutedTextBrush}"/>
+                                                    <TextBlock Text="{Binding Answer}" FontSize="12" Foreground="{StaticResource SecondaryBrush}" FontWeight="SemiBold"/>
+                                                </StackPanel>
+                                            </StackPanel>
+                                            <!-- Points badge -->
+                                            <Border Grid.Column="1" Background="{StaticResource AccentBrush}"
+                                                    CornerRadius="20" Padding="10,4" Margin="12,0" VerticalAlignment="Center">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBlock Text="{Binding Points}" FontSize="13" FontWeight="Bold"
+                                                               Foreground="{StaticResource DarkTextBrush}"/>
+                                                    <TextBlock Text=" pt" FontSize="11" Foreground="{StaticResource DarkTextBrush}"/>
+                                                </StackPanel>
+                                            </Border>
+                                            <Button Grid.Column="2" Content="🗑" Style="{StaticResource GhostBtn}"
+                                                    FontSize="16" VerticalAlignment="Center"
+                                                    Command="{Binding DataContext.DeleteQuestionCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                    CommandParameter="{Binding}"/>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </DockPanel>
+            </Grid>
+        </Grid>
+
+        <!-- ══════════════════════════════════════════════════════ -->
+        <!-- COMPETITION SCREEN                                     -->
+        <!-- ══════════════════════════════════════════════════════ -->
+        <Grid Visibility="{Binding IsCompetition, Converter={StaticResource BoolVis}}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="240"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Question area -->
+            <DockPanel Grid.Column="0" Margin="32">
+                <!-- Top bar -->
+                <Grid DockPanel.Dock="Top" Margin="0,0,0,20">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0" Text="🌸 Bahar Şenliği Quiz" FontSize="16" FontWeight="Bold"
+                               Foreground="{StaticResource PrimaryBrush}" VerticalAlignment="Center"/>
+                    <TextBlock Grid.Column="1" Text="{Binding QuestionProgress}" FontSize="18" FontWeight="Bold"
+                               Foreground="{StaticResource MutedTextBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    <Button Grid.Column="2" Content="Yarışmayı Bitir" Style="{StaticResource DangerBtn}"
+                            Command="{Binding FinishCompetitionCommand}" FontSize="12"/>
+                </Grid>
+
+                <!-- Question card -->
+                <Border DockPanel.Dock="Top" Style="{StaticResource Card}" Margin="0,0,0,20">
+                    <StackPanel>
+                        <TextBlock Text="{Binding CurrentQuestion.Text}" FontSize="22" FontWeight="Bold"
+                                   Foreground="{StaticResource DarkTextBrush}" TextWrapping="Wrap"
+                                   LineHeight="32" Margin="0,0,0,20"/>
+
+                        <!-- Answer section -->
+                        <Border Background="#F0FDF4" CornerRadius="8" Padding="16,12"
+                                Visibility="{Binding AnswerRevealed, Converter={StaticResource BoolVis}}">
+                            <StackPanel>
+                                <TextBlock Text="CEVAP" FontSize="10" FontWeight="Bold"
+                                           Foreground="{StaticResource SecondaryBrush}" Margin="0,0,0,4"/>
+                                <TextBlock Text="{Binding CurrentQuestion.Answer}" FontSize="18" FontWeight="Bold"
+                                           Foreground="#059669" TextWrapping="Wrap"/>
+                            </StackPanel>
+                        </Border>
+
+                        <Button Content="👁 Cevabı Göster" Style="{StaticResource SecondaryBtn}"
+                                Command="{Binding RevealAnswerCommand}" HorizontalAlignment="Left"
+                                Visibility="{Binding AnswerRevealed, Converter={StaticResource BoolVis}, ConverterParameter=Invert}"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Award section (shown after answer revealed) -->
+                <Border DockPanel.Dock="Top" Style="{StaticResource Card}" Margin="0,0,0,20"
+                        Visibility="{Binding AnswerRevealed, Converter={StaticResource BoolVis}}">
+                    <StackPanel>
+                        <!-- Who got it label -->
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,12"
+                                    Visibility="{Binding CurrentCompetitionQuestion.AwardedTo, Converter={StaticResource NullVis}}">
+                            <TextBlock Text="✅ Puan gitti: " FontSize="13" Foreground="{StaticResource MutedTextBrush}"/>
+                            <TextBlock Text="{Binding CurrentCompetitionQuestion.AwardedTo}" FontSize="13" FontWeight="Bold"
+                                       Foreground="{StaticResource SecondaryBrush}"/>
+                            <Button Content="Geri Al" Style="{StaticResource GhostBtn}" Margin="12,0,0,0" FontSize="11"
+                                    Command="{Binding RemovePointCommand}"/>
+                        </StackPanel>
+
+                        <TextBlock Text="Doğru bilen:" FontSize="13" Foreground="{StaticResource MutedTextBrush}" Margin="0,0,0,10"
+                                   Visibility="{Binding CurrentCompetitionQuestion.AwardedTo, Converter={StaticResource NullVis}, ConverterParameter=Invert}"/>
+
+                        <ItemsControl ItemsSource="{Binding Contestants}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <WrapPanel/>
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Button Content="{Binding Name}" Style="{StaticResource PrimaryBtn}"
+                                            Margin="0,0,8,8" Padding="20,10"
+                                            Command="{Binding DataContext.AwardPointCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                            CommandParameter="{Binding}"/>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </Border>
+
+                <!-- Navigation -->
+                <Grid DockPanel.Dock="Bottom">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Button Grid.Column="0" Content="◀ Önceki" Style="{StaticResource GhostBtn}"
+                            HorizontalAlignment="Left" FontSize="14" Padding="16,10"
+                            Command="{Binding PreviousQuestionCommand}"
+                            IsEnabled="{Binding CanGoPrevious}"/>
+                    <Button Grid.Column="1" Content="Sonraki ▶" Style="{StaticResource AccentBtn}"
+                            HorizontalAlignment="Right" FontSize="14" Padding="20,10"
+                            Command="{Binding NextQuestionCommand}"
+                            IsEnabled="{Binding CanGoNext}"/>
+                </Grid>
+            </DockPanel>
+
+            <!-- Scoreboard sidebar -->
+            <Border Grid.Column="1" Background="{StaticResource SidebarBrush}">
+                <DockPanel Margin="16">
+                    <TextBlock DockPanel.Dock="Top" Text="SKOR TABLOSU" FontSize="11" FontWeight="Bold"
+                               Foreground="#6666AA" Margin="0,16,0,16"/>
+                    <ItemsControl ItemsSource="{Binding Contestants}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Background="#3D3D50" CornerRadius="10" Padding="14,12" Margin="0,0,0,10">
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition/>
+                                            <RowDefinition/>
+                                        </Grid.RowDefinitions>
+                                        <TextBlock Grid.Row="0" Text="{Binding Name}" FontSize="14" FontWeight="Bold"
+                                                   Foreground="White"/>
+                                        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,4,0,0">
+                                            <TextBlock Text="{Binding Score}" FontSize="24" FontWeight="Bold"
+                                                       Foreground="{StaticResource AccentBrush}"/>
+                                            <TextBlock Text=" puan" FontSize="12" Foreground="#9999AA"
+                                                       VerticalAlignment="Bottom" Margin="0,0,0,2"/>
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </DockPanel>
+            </Border>
+        </Grid>
+
+        <!-- ══════════════════════════════════════════════════════ -->
+        <!-- RESULTS SCREEN                                         -->
+        <!-- ══════════════════════════════════════════════════════ -->
+        <Grid Visibility="{Binding IsResults, Converter={StaticResource BoolVis}}">
+            <Border Background="#2D2D3A"/>
+            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Margin="40">
+                <TextBlock Text="🏆" FontSize="72" HorizontalAlignment="Center"/>
+                <TextBlock Text="KAZANAN!" FontSize="28" FontWeight="Bold" Foreground="{StaticResource AccentBrush}"
+                           HorizontalAlignment="Center" Margin="0,8,0,0"/>
+                <TextBlock Text="{Binding WinnerName}" FontSize="40" FontWeight="Bold" Foreground="White"
+                           HorizontalAlignment="Center" Margin="0,4,0,32"/>
+
+                <!-- Score table -->
+                <Border Background="#3D3D50" CornerRadius="12" Padding="24,16" MinWidth="400">
+                    <StackPanel>
+                        <ItemsControl ItemsSource="{Binding FinalResults}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid Margin="0,6">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="{Binding Name}" FontSize="16"
+                                                   Foreground="White" VerticalAlignment="Center"/>
+                                        <TextBlock Grid.Column="1" FontSize="20" FontWeight="Bold"
+                                                   Foreground="{StaticResource AccentBrush}">
+                                            <Run Text="{Binding Score, Mode=OneWay}"/>
+                                            <Run Text=" pt" FontSize="12"/>
+                                        </TextBlock>
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </Border>
+
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,24,0,0">
+                    <Button Content="Ana Sayfaya Dön" Style="{StaticResource SecondaryBtn}"
+                            Command="{Binding BackToMainCommand}" Margin="0,0,12,0" Padding="20,12"/>
+                    <Button Content="Geçmişi Gör" Style="{StaticResource AccentBtn}"
+                            Command="{Binding GoToHistoryCommand}" Padding="20,12"/>
+                </StackPanel>
+            </StackPanel>
+        </Grid>
+
+        <!-- ══════════════════════════════════════════════════════ -->
+        <!-- HISTORY SCREEN                                         -->
+        <!-- ══════════════════════════════════════════════════════ -->
+        <Grid Visibility="{Binding IsHistory, Converter={StaticResource BoolVis}}" Background="{StaticResource BgBrush}">
+            <DockPanel Margin="32">
+                <Grid DockPanel.Dock="Top" Margin="0,0,0,20">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Button Grid.Column="0" Content="← Geri" Style="{StaticResource GhostBtn}"
+                            Command="{Binding BackToMainCommand}" Margin="0,0,16,0"/>
+                    <TextBlock Grid.Column="1" Text="Yarışma Geçmişi 🏅" FontSize="24" FontWeight="Bold"
+                               Foreground="{StaticResource DarkTextBrush}" VerticalAlignment="Center"/>
+                </Grid>
+
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <ItemsControl ItemsSource="{Binding AppData.History}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Style="{StaticResource Card}" Margin="0,0,0,12" Cursor="Hand">
+                                    <Border.InputBindings>
+                                        <MouseBinding MouseAction="LeftClick"
+                                                      Command="{Binding DataContext.ViewHistoryDetailCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                      CommandParameter="{Binding}"/>
+                                    </Border.InputBindings>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0">
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Text="🏆 " FontSize="14"/>
+                                                <TextBlock Text="{Binding Winner}" FontSize="16" FontWeight="Bold"
+                                                           Foreground="{StaticResource DarkTextBrush}"/>
+                                            </StackPanel>
+                                            <TextBlock Text="{Binding Date, StringFormat='{}{0:dd MMMM yyyy, HH:mm}'}"
+                                                       FontSize="12" Foreground="{StaticResource MutedTextBrush}" Margin="0,4,0,0"/>
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Right">
+                                            <ItemsControl ItemsSource="{Binding Results}">
+                                                <ItemsControl.ItemsPanel>
+                                                    <ItemsPanelTemplate>
+                                                        <WrapPanel/>
+                                                    </ItemsPanelTemplate>
+                                                </ItemsControl.ItemsPanel>
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <Border Background="{StaticResource BgBrush}" CornerRadius="6"
+                                                                Padding="8,4" Margin="4,0,0,0">
+                                                            <StackPanel Orientation="Horizontal">
+                                                                <TextBlock Text="{Binding Name}" FontSize="12"
+                                                                           Foreground="{StaticResource MutedTextBrush}"/>
+                                                                <TextBlock Text=": " FontSize="12" Foreground="{StaticResource MutedTextBrush}"/>
+                                                                <TextBlock Text="{Binding Score}" FontSize="12" FontWeight="Bold"
+                                                                           Foreground="{StaticResource PrimaryBrush}"/>
+                                                            </StackPanel>
+                                                        </Border>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </DockPanel>
+        </Grid>
+
+        <!-- ══════════════════════════════════════════════════════ -->
+        <!-- HISTORY DETAIL SCREEN                                  -->
+        <!-- ══════════════════════════════════════════════════════ -->
+        <Grid Visibility="{Binding IsHistoryDetail, Converter={StaticResource BoolVis}}" Background="{StaticResource BgBrush}">
+            <DockPanel Margin="32">
+                <Grid DockPanel.Dock="Top" Margin="0,0,0,20">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Button Grid.Column="0" Content="← Geçmiş" Style="{StaticResource GhostBtn}"
+                            Command="{Binding BackToHistoryCommand}" Margin="0,0,16,0"/>
+                    <StackPanel Grid.Column="1">
+                        <TextBlock FontSize="22" FontWeight="Bold" Foreground="{StaticResource DarkTextBrush}">
+                            <Run Text="🏆 Kazanan: "/>
+                            <Run Text="{Binding SelectedHistory.Winner, Mode=OneWay}"/>
+                        </TextBlock>
+                        <TextBlock Text="{Binding SelectedHistory.Date, StringFormat='{}{0:dd MMMM yyyy, HH:mm}'}"
+                                   FontSize="12" Foreground="{StaticResource MutedTextBrush}" Margin="0,2,0,0"/>
+                    </StackPanel>
+                </Grid>
+
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <ItemsControl ItemsSource="{Binding SelectedHistory.Questions}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Style="{StaticResource Card}" Margin="0,0,0,10" Padding="16,12">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0">
+                                            <TextBlock Text="{Binding Text}" FontSize="14" FontWeight="SemiBold"
+                                                       Foreground="{StaticResource DarkTextBrush}" TextWrapping="Wrap"/>
+                                            <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                                                <TextBlock Text="Cevap: " FontSize="12" Foreground="{StaticResource MutedTextBrush}"/>
+                                                <TextBlock Text="{Binding Answer}" FontSize="12"
+                                                           Foreground="{StaticResource SecondaryBrush}" FontWeight="SemiBold"/>
+                                                <TextBlock Text=" · " FontSize="12" Foreground="{StaticResource MutedTextBrush}"/>
+                                                <TextBlock Text="{Binding Category}" FontSize="12"
+                                                           Foreground="{StaticResource PurpleBrush}"/>
+                                            </StackPanel>
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="12,0,0,0">
+                                            <Border Background="{StaticResource AccentBrush}" CornerRadius="16" Padding="8,3">
+                                                <TextBlock FontSize="12" FontWeight="Bold"
+                                                           Foreground="{StaticResource DarkTextBrush}">
+                                                    <Run Text="{Binding Points, Mode=OneWay}"/>
+                                                    <Run Text=" pt"/>
+                                                </TextBlock>
+                                            </Border>
+                                            <TextBlock Text="{Binding AwardedTo}" FontSize="11"
+                                                       Foreground="{StaticResource SecondaryBrush}"
+                                                       HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </DockPanel>
+        </Grid>
+
+        <!-- ══════════════════════════════════════════════════════ -->
+        <!-- OVERLAY: Add Question Panel                            -->
+        <!-- ══════════════════════════════════════════════════════ -->
+        <Grid Visibility="{Binding ShowAddQuestion, Converter={StaticResource BoolVis}}">
+            <Border Background="#80000000"/>
+            <Border Style="{StaticResource Card}" Width="460" VerticalAlignment="Center" HorizontalAlignment="Center"
+                    Padding="28">
+                <StackPanel>
+                    <TextBlock Text="Soru Ekle" FontSize="20" FontWeight="Bold"
+                               Foreground="{StaticResource DarkTextBrush}" Margin="0,0,0,20"/>
+
+                    <TextBlock Text="Soru Metni" FontSize="12" Foreground="{StaticResource MutedTextBrush}" Margin="0,0,0,4"/>
+                    <TextBox Text="{Binding NewQuestionText, UpdateSourceTrigger=PropertyChanged}"
+                             Style="{StaticResource InputBox}" TextWrapping="Wrap" Height="70"
+                             AcceptsReturn="True" Margin="0,0,0,14"/>
+
+                    <TextBlock Text="Cevap" FontSize="12" Foreground="{StaticResource MutedTextBrush}" Margin="0,0,0,4"/>
+                    <TextBox Text="{Binding NewQuestionAnswer, UpdateSourceTrigger=PropertyChanged}"
+                             Style="{StaticResource InputBox}" Margin="0,0,0,14"/>
+
+                    <Grid Margin="0,0,0,14">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="120"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0" Margin="0,0,12,0">
+                            <TextBlock Text="Kategori" FontSize="12" Foreground="{StaticResource MutedTextBrush}" Margin="0,0,0,4"/>
+                            <ComboBox ItemsSource="{Binding AppData.Categories}"
+                                      SelectedValuePath="Id"
+                                      SelectedValue="{Binding NewQuestionCategoryId}"
+                                      DisplayMemberPath="Name"
+                                      FontFamily="Segoe UI" FontSize="13" Padding="8,6"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="1">
+                            <TextBlock Text="Puan" FontSize="12" Foreground="{StaticResource MutedTextBrush}" Margin="0,0,0,4"/>
+                            <TextBox Text="{Binding NewQuestionPoints, UpdateSourceTrigger=PropertyChanged}"
+                                     Style="{StaticResource InputBox}"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                        <Button Content="İptal" Style="{StaticResource GhostBtn}"
+                                Command="{Binding CloseAddQuestionCommand}" Margin="0,0,8,0"/>
+                        <Button Content="Kaydet" Style="{StaticResource PrimaryBtn}"
+                                Command="{Binding SaveQuestionCommand}"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- ══════════════════════════════════════════════════════ -->
+        <!-- OVERLAY: Add Category Panel                            -->
+        <!-- ══════════════════════════════════════════════════════ -->
+        <Grid Visibility="{Binding ShowAddCategory, Converter={StaticResource BoolVis}}">
+            <Border Background="#80000000"/>
+            <Border Style="{StaticResource Card}" Width="360" VerticalAlignment="Center" HorizontalAlignment="Center"
+                    Padding="28">
+                <StackPanel>
+                    <TextBlock Text="Kategori Ekle" FontSize="20" FontWeight="Bold"
+                               Foreground="{StaticResource DarkTextBrush}" Margin="0,0,0,20"/>
+                    <TextBlock Text="Kategori Adı" FontSize="12" Foreground="{StaticResource MutedTextBrush}" Margin="0,0,0,4"/>
+                    <TextBox Text="{Binding NewCategoryName, UpdateSourceTrigger=PropertyChanged}"
+                             Style="{StaticResource InputBox}" Margin="0,0,0,20"/>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                        <Button Content="İptal" Style="{StaticResource GhostBtn}"
+                                Command="{Binding CloseAddCategoryCommand}" Margin="0,0,8,0"/>
+                        <Button Content="Kaydet" Style="{StaticResource SecondaryBtn}"
+                                Command="{Binding SaveCategoryCommand}"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- ══════════════════════════════════════════════════════ -->
+        <!-- OVERLAY: Competition Setup                             -->
+        <!-- ══════════════════════════════════════════════════════ -->
+        <Grid Visibility="{Binding ShowCompetitionSetup, Converter={StaticResource BoolVis}}">
+            <Border Background="#80000000"/>
+            <Border Style="{StaticResource Card}" Width="520" VerticalAlignment="Center" HorizontalAlignment="Center"
+                    Padding="28" MaxHeight="640">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel>
+                        <TextBlock Text="🎯 Yarışma Kurulumu" FontSize="20" FontWeight="Bold"
+                                   Foreground="{StaticResource DarkTextBrush}" Margin="0,0,0,20"/>
+
+                        <!-- Question count -->
+                        <TextBlock Text="Kaç Soru?" FontSize="12" Foreground="{StaticResource MutedTextBrush}" Margin="0,0,0,4"/>
+                        <TextBox Text="{Binding SetupQuestionCount, UpdateSourceTrigger=PropertyChanged}"
+                                 Style="{StaticResource InputBox}" Width="80" HorizontalAlignment="Left" Margin="0,0,0,16"/>
+
+                        <!-- Contestant count -->
+                        <TextBlock Text="Kaç Yarışmacı? (2-4)" FontSize="12" Foreground="{StaticResource MutedTextBrush}" Margin="0,0,0,4"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                            <Button Content="−" Style="{StaticResource GhostBtn}" Padding="10,4" FontSize="16"
+                                    Command="{Binding DecreaseContestantsCommand}"/>
+                            <TextBlock Text="{Binding SetupContestantCount}" FontSize="16" FontWeight="Bold"
+                                       VerticalAlignment="Center" Margin="12,0" Foreground="{StaticResource DarkTextBrush}"/>
+                            <Button Content="＋" Style="{StaticResource GhostBtn}" Padding="10,4" FontSize="16"
+                                    Command="{Binding IncreaseContestantsCommand}"/>
+                        </StackPanel>
+
+                        <ItemsControl ItemsSource="{Binding SetupContestantNames}" Margin="0,8,0,16">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBox Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}"
+                                             Style="{StaticResource InputBox}" Margin="0,0,0,6"/>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                        <!-- Categories -->
+                        <TextBlock Text="Kategoriler" FontSize="12" Foreground="{StaticResource MutedTextBrush}" Margin="0,0,0,8"/>
+                        <ItemsControl ItemsSource="{Binding SetupCategories}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <WrapPanel/>
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Margin="0,0,8,8" CornerRadius="8" Cursor="Hand">
+                                        <Border.Style>
+                                            <Style TargetType="Border">
+                                                <Setter Property="Background" Value="{StaticResource SecondaryBrush}"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsEnabled}" Value="False">
+                                                        <Setter Property="Background" Value="#E0E0E0"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                        <Border.InputBindings>
+                                            <MouseBinding MouseAction="LeftClick"
+                                                          Command="{Binding DataContext.ToggleCategoryCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                          CommandParameter="{Binding}"/>
+                                        </Border.InputBindings>
+                                        <TextBlock Padding="12,6" FontSize="13" FontWeight="SemiBold">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Text" Value="{Binding Category.Name}"/>
+                                                    <Setter Property="Foreground" Value="White"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsEnabled}" Value="False">
+                                                            <Setter Property="Foreground" Value="{StaticResource MutedTextBrush}"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                        <!-- Warning -->
+                        <TextBlock Text="{Binding SetupWarning}" FontSize="12" Foreground="{StaticResource PrimaryBrush}"
+                                   TextWrapping="Wrap" Margin="0,8,0,0"
+                                   Visibility="{Binding SetupWarning, Converter={StaticResource NullVis}}"/>
+
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,20,0,0">
+                            <Button Content="İptal" Style="{StaticResource GhostBtn}"
+                                    Command="{Binding CloseCompetitionSetupCommand}" Margin="0,0,8,0"/>
+                            <Button Content="Başla! 🚀" Style="{StaticResource AccentBtn}"
+                                    Command="{Binding StartCompetitionCommand}" Padding="20,10" FontSize="14"/>
+                        </StackPanel>
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+        </Grid>
+
+        <!-- ══════════════════════════════════════════════════════ -->
+        <!-- OVERLAY: Tiebreaker                                    -->
+        <!-- ══════════════════════════════════════════════════════ -->
+        <Grid Visibility="{Binding ShowTiebreaker, Converter={StaticResource BoolVis}}">
+            <Border Background="#CC000000"/>
+            <Border Style="{StaticResource Card}" Width="500" VerticalAlignment="Center" HorizontalAlignment="Center"
+                    Padding="32">
+                <StackPanel>
+                    <TextBlock Text="⚡ BERABERLIK!" FontSize="24" FontWeight="Bold"
+                               Foreground="{StaticResource PrimaryBrush}" HorizontalAlignment="Center" Margin="0,0,0,8"/>
+                    <TextBlock FontSize="13" Foreground="{StaticResource MutedTextBrush}"
+                               HorizontalAlignment="Center" Margin="0,0,0,24" TextWrapping="Wrap" TextAlignment="Center">
+                        <Run Text="Beraberlik kırma sorusu — kazanan bu soruyu doğru bilen!"/>
+                    </TextBlock>
+
+                    <TextBlock Text="{Binding TiebreakerQuestionText}" FontSize="18" FontWeight="Bold"
+                               Foreground="{StaticResource DarkTextBrush}" TextWrapping="Wrap"
+                               HorizontalAlignment="Center" TextAlignment="Center" Margin="0,0,0,20"/>
+
+                    <!-- Answer -->
+                    <Border Background="#F0FDF4" CornerRadius="8" Padding="16,12" Margin="0,0,0,20"
+                            Visibility="{Binding TiebreakerAnswerRevealed, Converter={StaticResource BoolVis}}">
+                        <TextBlock Text="{Binding TiebreakerQuestion.Question.Answer}" FontSize="18" FontWeight="Bold"
+                                   Foreground="#059669" HorizontalAlignment="Center"/>
+                    </Border>
+
+                    <Button Content="👁 Cevabı Göster" Style="{StaticResource SecondaryBtn}"
+                            HorizontalAlignment="Center" Margin="0,0,0,20"
+                            Command="{Binding RevealTiebreakerAnswerCommand}"
+                            Visibility="{Binding TiebreakerAnswerRevealed, Converter={StaticResource BoolVis}, ConverterParameter=Invert}"/>
+
+                    <TextBlock Text="Kim doğru bildi?" FontSize="13" Foreground="{StaticResource MutedTextBrush}"
+                               HorizontalAlignment="Center" Margin="0,0,0,12"
+                               Visibility="{Binding TiebreakerAnswerRevealed, Converter={StaticResource BoolVis}}"/>
+
+                    <ItemsControl ItemsSource="{Binding TiedContestants}"
+                                  Visibility="{Binding TiebreakerAnswerRevealed, Converter={StaticResource BoolVis}}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel HorizontalAlignment="Center"/>
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Button Content="{Binding Name}" Style="{StaticResource PrimaryBtn}"
+                                        Margin="6,0" Padding="24,12" FontSize="15"
+                                        Command="{Binding DataContext.AwardTiebreakerCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                        CommandParameter="{Binding}"/>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+        </Grid>
+
+    </Grid>
+</Window>
