@@ -112,7 +112,11 @@ namespace BaharSenligi.ViewModels
         public string TiebreakerQuestionText => _tiebreakerQuestion?.Question.Text ?? "";
         private bool _tiebreakerAnswerRevealed;
         public bool TiebreakerAnswerRevealed { get => _tiebreakerAnswerRevealed; set { _tiebreakerAnswerRevealed = value; OnPropertyChanged(); } }
-        public List<Contestant> TiedContestants { get; private set; } = new();
+        private List<Contestant> _tiedContestants = new();
+        public List<Contestant> TiedContestants {
+            get => _tiedContestants;
+            private set { _tiedContestants = value; OnPropertyChanged(); }
+        }
 
         // ── Results ──────────────────────────────────────────────────
         public List<Contestant> FinalResults { get; private set; } = new();
@@ -121,9 +125,6 @@ namespace BaharSenligi.ViewModels
         // ── History ──────────────────────────────────────────────────
         private PastCompetition? _selectedHistory;
         public PastCompetition? SelectedHistory { get => _selectedHistory; set { _selectedHistory = value; OnPropertyChanged(); } }
-
-        // ── Tracked asked IDs (session) ──────────────────────────────
-        private HashSet<Guid> _askedIds = new();
 
         public MainViewModel()
         {
@@ -166,6 +167,7 @@ namespace BaharSenligi.ViewModels
             ViewHistoryDetailCommand = new RelayCommand<PastCompetition>(h => { SelectedHistory = h; CurrentScreen = Screen.HistoryDetail; });
             BackToHistoryCommand = new RelayCommand(() => CurrentScreen = Screen.History);
             BackToMainCommand = new RelayCommand(() => CurrentScreen = Screen.Main);
+            ResetQuestionPoolCommand = new RelayCommand(() => { AppData.AskedQuestionIds.Clear(); _data.Save(AppData); });
         }
 
         // ── Commands ─────────────────────────────────────────────────
@@ -196,6 +198,7 @@ namespace BaharSenligi.ViewModels
         public ICommand ViewHistoryDetailCommand { get; private set; } = null!;
         public ICommand BackToHistoryCommand { get; private set; } = null!;
         public ICommand BackToMainCommand { get; private set; } = null!;
+        public ICommand ResetQuestionPoolCommand { get; private set; } = null!;
 
         // ── Logic ────────────────────────────────────────────────────
         private void SaveQuestion()
@@ -269,7 +272,7 @@ namespace BaharSenligi.ViewModels
                 return;
             }
 
-            var result = _selector.Select(AppData.Questions, selectedCatIds, SetupQuestionCount, _askedIds);
+            var result = _selector.Select(AppData.Questions, selectedCatIds, SetupQuestionCount, AppData.AskedQuestionIds);
             SetupWarning = result.Warning;
 
             if (result.Questions.Count == 0)
@@ -279,7 +282,7 @@ namespace BaharSenligi.ViewModels
             }
 
             // Track asked
-            foreach (var q in result.Questions) _askedIds.Add(q.Id);
+            foreach (var q in result.Questions) AppData.AskedQuestionIds.Add(q.Id);
 
             _competitionQuestions = result.Questions.Select(q => new CompetitionQuestion { Question = q }).ToList();
 

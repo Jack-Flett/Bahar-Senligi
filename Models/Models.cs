@@ -21,11 +21,11 @@ namespace BaharSenligi.Models
         public int Points { get; set; } = 1;
     }
 
-    public class AppData
-    {
+    public class AppData {
         public ObservableCollection<Category> Categories { get; set; } = new();
         public List<Question> Questions { get; set; } = new();
         public ObservableCollection<PastCompetition> History { get; set; } = new();
+        public HashSet<Guid> AskedQuestionIds { get; set; } = new();
     }
 
     public class Contestant : INotifyPropertyChanged {

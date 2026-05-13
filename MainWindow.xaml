@@ -48,6 +48,9 @@
                         <Button Content="🎯  Yarışma Başlat" Style="{StaticResource CatBtn}"
                                 Foreground="{StaticResource AccentBrush}" FontWeight="SemiBold"
                                 Command="{Binding OpenCompetitionSetupCommand}"/>
+                        <Button Content="🔄  Soru Havuzunu Sıfırla" Style="{StaticResource CatBtn}"
+                                Foreground="#FF9966"
+                                Command="{Binding ResetQuestionPoolCommand}"/>
                     </StackPanel>
 
                     <!-- Divider + categories label -->
